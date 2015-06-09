@@ -1,0 +1,22 @@
+{
+	"name": "McRcD",
+	"description": "A tiny Minecraft Rcon library for D",
+	"copyright": "Copyright © 2015, WebFreak001",
+	"authors": ["WebFreak001"],
+	"license": "public domain",
+	"targetType": "library",
+	"dependencies": {
+	},
+	"configurations": [
+		{
+			"name": "library"
+		},
+		{
+			"name": "example",
+			"targetType": "executable",
+			"buildOptions": ["debugMode", "debugInfo"],
+			"sourcePaths": ["source", "examples"],
+			"importPaths": ["source", "examples"]
+		}
+	]
+}
