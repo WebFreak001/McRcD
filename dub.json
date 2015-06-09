@@ -1,5 +1,5 @@
 {
-	"name": "McRcD",
+	"name": "mcrcd",
 	"description": "A tiny Minecraft Rcon library for D",
 	"copyright": "Copyright © 2015, WebFreak001",
 	"authors": ["WebFreak001"],
