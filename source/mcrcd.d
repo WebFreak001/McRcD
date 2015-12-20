@@ -22,7 +22,7 @@ struct MCRconResponse
 	@property string unformatted() const
 	{
 		string raw = text.idup;
-		int index;
+		size_t index;
 		while((index = raw.indexOf('§')) != -1)
 		{
 			if(index < raw.length - 2)
