@@ -1,7 +1,7 @@
 {
 	"name": "mcrcd",
 	"description": "A tiny Minecraft Rcon library for D",
-	"copyright": "Copyright © 2015, WebFreak001",
+	"copyright": "Copyright © 2016, WebFreak001",
 	"authors": ["WebFreak001"],
 	"license": "public domain",
 	"targetType": "library",
@@ -14,7 +14,6 @@
 		{
 			"name": "example",
 			"targetType": "executable",
-			"buildOptions": ["debugMode", "debugInfo"],
 			"sourcePaths": ["source", "examples"],
 			"importPaths": ["source", "examples"]
 		}
