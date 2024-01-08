@@ -4,6 +4,7 @@ import std.string;
 import std.socket;
 import std.bitmanip;
 import core.time;
+import std.exception : enforce;
 
 /// Response for Rcon packets.
 struct MCRconResponse
