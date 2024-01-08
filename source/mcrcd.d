@@ -88,26 +88,26 @@ public:
 	/// Sends a packet containing `data` with `packetID` as ID and returns the data synchronously.
 	MCRconResponse send(MCRconPacket packetID, string data)
 	{
-		assert(isConnected, "Cannot send data without being connected");
+		enforce(isConnected, "Cannot send data without being connected");
 		ubyte[] payload = cast(ubyte[])[0, 0, 0, 0] ~ cast(ubyte[])nativeToLittleEndian(cast(int)packetID) ~ cast(ubyte[])data ~ cast(ubyte[])[0, 0];
-		assert(_socket.send(cast(ubyte[])nativeToLittleEndian(cast(int)payload.length) ~ payload) != Socket.ERROR, "Couldn't send packet! " ~ _socket.getErrorText());
+		enforce(_socket.send(cast(ubyte[])nativeToLittleEndian(cast(int)payload.length) ~ payload) != Socket.ERROR, "Couldn't send packet! " ~ _socket.getErrorText());
 
 		MCRconResponse response;
 
 		while(true)
 		{
 			ubyte[4] recv = new ubyte[4];
-			assert(_socket.receive(recv) > 0, "Couldn't receive packet! " ~ _socket.getErrorText());
+			enforce(_socket.receive(recv) > 0, "Couldn't receive packet! " ~ _socket.getErrorText());
 			int packLength = littleEndianToNative!int(recv);
 
 			ubyte[] packet = new ubyte[packLength];
-			assert(_socket.receive(packet) > 0, "Couldn't receive packet! " ~ _socket.getErrorText());
+			enforce(_socket.receive(packet) > 0, "Couldn't receive packet! " ~ _socket.getErrorText());
 
 			response.responseID = littleEndianToNative!int(packet[0 .. 4]);
 			int packetType = littleEndianToNative!int(packet[4 .. 8]);
 			response.data ~= packet[8 .. $ - 2];
-			assert(packet[$ - 2 .. $] == cast(ubyte[])[0, 0], "Invalid padding");
-			assert(response.responseID != -1, "Login failed");
+			enforce(packet[$ - 2 .. $] == cast(ubyte[])[0, 0], "Invalid padding");
+			enforce(response.responseID != -1, "Login failed");
 
 			auto sockIn = new SocketSet(1);
 			sockIn.add(_socket);
