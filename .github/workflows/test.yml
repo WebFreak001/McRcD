@@ -19,6 +19,7 @@ jobs:
         compiler: ${{ matrix.dcompiler }}
     - uses: actions/setup-java@v4
       with:
+        distribution: 'temurin'
         java-version: '21'
     - name: Download minecraft server jar
       uses: actions/cache@v3
