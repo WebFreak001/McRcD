@@ -11,3 +11,7 @@ examples/repl/repl
 docs/
 *-test-*
 *.a
+
+testserver/*
+!testserver/eula.txt
+!testserver/server.properties
