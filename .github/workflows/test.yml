@@ -1,0 +1,26 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        dcompiler: [dmd-latest, ldc-latest]
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install ${{ matrix.dcompiler }}
+      uses: dlang-community/setup-dlang@v1
+      with:
+        compiler: ${{ matrix.dcompiler }}
+
+    - name: Build library
+      run: dub build
+    - name: Test
+      run: dub test
+    - name: Build example
+      run: dub build --root=examples/repl

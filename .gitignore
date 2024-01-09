@@ -3,8 +3,11 @@ docs.json
 __dummy.html
 *.o
 *.obj
+*.exe
+*.lib
+
+examples/repl/repl
 
 docs/
-dub.selections.json
-mcrcd.exe
-mcrcd.lib
+*-test-*
+*.a
