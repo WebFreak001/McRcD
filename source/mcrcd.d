@@ -46,6 +46,8 @@ unittest
 	assert(res.unformatted == "foo");
 	res.text = "§ffoo".dup;
 	assert(res.unformatted == "foo");
+	res.text = "§ff§eo§do".dup;
+	assert(res.unformatted == "foo");
 }
 
 ///
