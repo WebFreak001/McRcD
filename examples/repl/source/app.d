@@ -1,7 +1,8 @@
 import mcrcd;
+import std.algorithm;
+import std.conv;
 import std.stdio;
 import std.string;
-import std.conv;
 
 void main(string[] args)
 {

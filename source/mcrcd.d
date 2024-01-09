@@ -24,11 +24,11 @@ struct MCRconResponse
 	{
 		string raw = text.idup;
 		size_t index;
-		while((index = raw.indexOf('§')) != -1)
+		while ((index = raw.indexOf('§')) != -1)
 		{
-			if(index < raw.length - 2)
+			if (index < raw.length - 2)
 				raw = raw[0 .. index] ~ raw[index + 3 .. $];
-			else if(index < raw.length - 1)
+			else if (index < raw.length - 1)
 				raw = raw[0 .. index] ~ raw[index + 2 .. $];
 			else
 				break;
@@ -66,7 +66,7 @@ private:
 	Socket _socket;
 public:
 	/// Connects to `host:port` and creates a new socket.
-	void connect(string host, short port)
+	void connect(scope const(char)[] host, short port)
 	{
 		assert(!isConnected, "Still connected!");
 		_socket = new TcpSocket();
@@ -87,22 +87,30 @@ public:
 	}
 
 	/// Sends a packet containing `data` with `packetID` as ID and returns the data synchronously.
-	MCRconResponse send(MCRconPacket packetID, string data)
+	MCRconResponse send(MCRconPacket packetID, scope const(char)[] data, int maxResponseSize = 64 * 1024 * 1024)
 	{
 		enforce(isConnected, "Cannot send data without being connected");
-		ubyte[] payload = cast(ubyte[])[0, 0, 0, 0] ~ cast(ubyte[])nativeToLittleEndian(cast(int)packetID) ~ cast(ubyte[])data ~ cast(ubyte[])[0, 0];
-		enforce(_socket.send(cast(ubyte[])nativeToLittleEndian(cast(int)payload.length) ~ payload) != Socket.ERROR, "Couldn't send packet! " ~ _socket.getErrorText());
+		ubyte[] payload = cast(ubyte[])[0, 0, 0, 0] ~ cast(
+			ubyte[]) nativeToLittleEndian(
+			cast(int) packetID) ~ cast(ubyte[]) data ~ cast(ubyte[])[0, 0];
+		enforce(_socket.send(cast(ubyte[]) nativeToLittleEndian(
+				cast(int) payload.length) ~ payload) != Socket.ERROR, "Couldn't send packet! " ~ _socket
+				.getErrorText());
 
 		MCRconResponse response;
 
-		while(true)
+		while (true)
 		{
-			ubyte[4] recv = new ubyte[4];
-			enforce(_socket.receive(recv) > 0, "Couldn't receive packet! " ~ _socket.getErrorText());
-			int packLength = littleEndianToNative!int(recv);
+			ubyte[4] recv;
+			enforce(_socket.receive(recv[]) == 4, "Couldn't receive packet! " ~ _socket
+					.getErrorText());
+			uint packLength = littleEndianToNative!uint(recv);
+
+			enforce(packLength <= maxResponseSize, "Response larger than maximum response size");
 
 			ubyte[] packet = new ubyte[packLength];
-			enforce(_socket.receive(packet) > 0, "Couldn't receive packet! " ~ _socket.getErrorText());
+			enforce(_socket.receive(packet) > 0, "Couldn't receive packet! " ~ _socket
+					.getErrorText());
 
 			response.responseID = littleEndianToNative!int(packet[0 .. 4]);
 			int packetType = littleEndianToNative!int(packet[4 .. 8]);
@@ -113,19 +121,19 @@ public:
 			auto sockIn = new SocketSet(1);
 			sockIn.add(_socket);
 
-			if(Socket.select(sockIn, new SocketSet(0), new SocketSet(0), 0.msecs) == 0)
+			if (Socket.select(sockIn, new SocketSet(0), new SocketSet(0), 0.msecs) == 0)
 				return response;
 		}
 	}
 
 	/// Shorthand for `send(MCRconPacket.Command, command)`
-	auto command(string command)
+	auto command(scope const(char)[] command)
 	{
 		return send(MCRconPacket.Command, command);
 	}
 
 	/// Shorthand for `send(MCRconPacket.Login, password)`
-	auto login(string password)
+	auto login(scope const(char)[] password)
 	{
 		return send(MCRconPacket.Login, password);
 	}
