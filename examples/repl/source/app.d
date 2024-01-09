@@ -12,17 +12,17 @@ void main(string[] args)
 	ushort port = 25575;
 	string password = "password";
 
-	if(args.length > 1)
+	if (args.length > 1)
 	{
 		auto parts = args[1].findSplit(":");
-		if(parts[2].length)
+		if (parts[2].length)
 		{
 			host = parts[0];
 			try
 			{
 				port = parse!ushort(parts[2]);
 			}
-			catch(ConvException e)
+			catch (ConvException e)
 			{
 				stderr.writeln("Malformed Port!");
 				return;
@@ -33,7 +33,7 @@ void main(string[] args)
 			host = parts[0];
 		}
 
-		if(args.length >= 2)
+		if (args.length >= 2)
 		{
 			password = args[2];
 		}
@@ -44,20 +44,26 @@ void main(string[] args)
 	{
 		rcon.connect(host, port);
 	}
-	catch(Exception e)
+	catch (Exception e)
 	{
 		stderr.writeln("Couldn't connect!");
 		stderr.writeln(e);
 		return;
 	}
-	scope(exit) rcon.disconnect();
+	scope (exit)
+		rcon.disconnect();
 
 	stderr.writeln("Logging in...");
 	rcon.login(password);
 
-	while(true)
+	while (true)
 	{
 		write("> ");
-		writeln("  ", (rcon.command(readln().strip())).unformatted);
+		string line = readln();
+		if (!line.length)
+			break;
+		if (!line.chomp.length)
+			continue;
+		writeln("  ", (rcon.command(line.chomp())).text);
 	}
 }

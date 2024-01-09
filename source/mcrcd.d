@@ -1,10 +1,11 @@
 module mcrcd;
 
-import std.string;
-import std.socket;
-import std.bitmanip;
 import core.time;
+import std.algorithm;
+import std.bitmanip;
 import std.exception : enforce;
+import std.socket;
+import std.string;
 
 /// Response for Rcon packets.
 struct MCRconResponse
@@ -23,16 +24,9 @@ struct MCRconResponse
 	@property string unformatted() const
 	{
 		string raw = text.idup;
-		size_t index;
-		while ((index = raw.indexOf('§')) != -1)
-		{
-			if (index < raw.length - 2)
-				raw = raw[0 .. index] ~ raw[index + 3 .. $];
-			else if (index < raw.length - 1)
-				raw = raw[0 .. index] ~ raw[index + 2 .. $];
-			else
-				break;
-		}
+		ptrdiff_t index = raw.length;
+		while ((index = raw.lastIndexOf('§', index)) != -1)
+			raw = raw[0 .. index] ~ raw[min($, index + 3) .. $];
 		return raw;
 	}
 
@@ -49,6 +43,8 @@ unittest
 	res.text = "foo§".dup;
 	assert(res.unformatted == "foo");
 	res.text = "foo§f".dup;
+	assert(res.unformatted == "foo");
+	res.text = "§ffoo".dup;
 	assert(res.unformatted == "foo");
 }
 
@@ -87,43 +83,48 @@ public:
 	}
 
 	/// Sends a packet containing `data` with `packetID` as ID and returns the data synchronously.
-	MCRconResponse send(MCRconPacket packetID, scope const(char)[] data, int maxResponseSize = 64 * 1024 * 1024)
+	MCRconResponse send(MCRconPacket packetID, scope const(char)[] data, int maxResponseSize = 64 * 1024)
 	{
 		enforce(isConnected, "Cannot send data without being connected");
-		ubyte[] payload = cast(ubyte[])[0, 0, 0, 0] ~ cast(
-			ubyte[]) nativeToLittleEndian(
-			cast(int) packetID) ~ cast(ubyte[]) data ~ cast(ubyte[])[0, 0];
-		enforce(_socket.send(cast(ubyte[]) nativeToLittleEndian(
-				cast(int) payload.length) ~ payload) != Socket.ERROR, "Couldn't send packet! " ~ _socket
-				.getErrorText());
+		ubyte[] payload = new ubyte[14 + data.length];
+		payload[0 .. 4] = nativeToLittleEndian(cast(uint) payload.length - 4);
+		// 4..8 is requestID, which is 0 for all our requests
+		payload[8 .. 12] = nativeToLittleEndian(cast(int) packetID);
+		payload[12 .. $ - 2] = cast(const(ubyte)[]) data;
+		enforce(_socket.send(payload[]) != Socket.ERROR, "Couldn't send payload! "
+				~ _socket.getErrorText());
 
 		MCRconResponse response;
 
-		while (true)
+		ubyte[4] recv;
+		enforce(_socket.receive(recv[]) == 4, "Couldn't receive packet! "
+				~ _socket.getErrorText());
+		uint packLength = littleEndianToNative!uint(recv);
+
+		enforce(packLength <= maxResponseSize, "Response larger than maximum response size");
+
+		ubyte[] packet = new ubyte[packLength];
+		size_t filled;
+		while (filled < packet.length)
 		{
-			ubyte[4] recv;
-			enforce(_socket.receive(recv[]) == 4, "Couldn't receive packet! " ~ _socket
-					.getErrorText());
-			uint packLength = littleEndianToNative!uint(recv);
-
-			enforce(packLength <= maxResponseSize, "Response larger than maximum response size");
-
-			ubyte[] packet = new ubyte[packLength];
-			enforce(_socket.receive(packet) > 0, "Couldn't receive packet! " ~ _socket
-					.getErrorText());
-
-			response.responseID = littleEndianToNative!int(packet[0 .. 4]);
-			int packetType = littleEndianToNative!int(packet[4 .. 8]);
-			response.data ~= packet[8 .. $ - 2];
-			enforce(packet[$ - 2 .. $] == cast(ubyte[])[0, 0], "Invalid padding");
-			enforce(response.responseID != -1, "Login failed");
-
-			auto sockIn = new SocketSet(1);
-			sockIn.add(_socket);
-
-			if (Socket.select(sockIn, new SocketSet(0), new SocketSet(0), 0.msecs) == 0)
-				return response;
+			auto len = _socket.receive(packet[filled .. $]);
+			if (len == 0)
+				throw new Exception("remote side has closed the connection");
+			else if (len == -1)
+				throw new Exception(
+					"Socket error trying to receive response: "
+						~ _socket.getErrorText());
+			else
+				filled += len;
 		}
+
+		response.responseID = littleEndianToNative!int(packet[0 .. 4]);
+		int packetType = littleEndianToNative!int(packet[4 .. 8]);
+		response.data ~= packet[8 .. $ - 2];
+		enforce(packet[$ - 2 .. $] == cast(ubyte[])[0, 0], "Invalid padding");
+		enforce(response.responseID != -1, "Login failed");
+
+		return response;
 	}
 
 	/// Shorthand for `send(MCRconPacket.Command, command)`
